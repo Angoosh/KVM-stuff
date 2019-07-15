@@ -1,0 +1,81 @@
+KVM gpu passthrough setup
+
+ARCH Linux:
+
+sudo pacman -Syu
+sudo pacman -S mkinitcpio qemu libvirt ovmf virt-manager
+
+sudo nano /etc/default/grub
+
+edit (replace <GPU> and <GPU-sound> with something like 10de:1b82 from "lspci -nn"
+GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on vfio-pci.ids=<GPU>,<GPU-sound>"
+
+sudo nano /usr/sbin/update-grub
+
+add:
+#!/bin/sh
+set -e
+exec grub-mkconfig -o /boot/grub/grub.cfg "$@"
+
+sudo chown root:root /usr/sbin/update-grub
+sudo chmod 755 /usr/sbin/update-grub
+sudo update-grub
+
+sudo nano/etc/modprobe.d/vfio.conf
+
+edit:
+options vfio-pci ids=<GPU>,<GPU-sound>
+
+sudo nano /etc/mkinitcpio.conf
+
+edit:
+MODULES=(vfio_pci vfio vfio_iommu_type1 vfio_virqfd)
+HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)
+
+sudo mkinitcpio -p linux
+
+sudo nano /etc/libvirt/qemu.conf
+
+edit:
+nvram = [
+	"/usr/share/ovmf/x64/OVMF_CODE.fd:/usr/share/ovmf/x64/OVMF_VARS.fd"
+]
+
+systemctl enable libvirtd.service
+systemctl enable virtlogd.socket
+systemctl start libvirtd.service
+systemctl start virtlogd.socket
+
+
+
+Code 43 repair:
+
+cd /etc/libvirt/qemu
+sudo virsh define <machine_name>.xml
+sudo EDITOR=nano virsh edit <machine_name>
+	
+first line add:
+xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'
+
+find <features>
+add under features group:
+    <kvm>
+      <hidden state='on'/>
+    </kvm>
+    <ioapic driver='kvm'/>
+
+after </devices> add:
+  <qemu:commandline>
+    <qemu:arg value='-cpu'/>
+    <qemu:arg value='host,hv_time,kvm=off,hv_vendor_id=null'/>
+  </qemu:commandline>
+
+
+
+default NAT (disabled) repair:
+
+sudo pacman -S ebtables dnsmasq firewalld
+sudo systemctl enable firewalld
+sudo systemctl start firewalld
+sudo systemctl restart libvirtd
+sudo virsh net-start default 
