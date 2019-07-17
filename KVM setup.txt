@@ -47,6 +47,9 @@ systemctl start libvirtd.service
 systemctl start virtlogd.socket
 
 
+In virt-manager:
+firmware = UEFI
+cpu configuration = host-passthrough
 
 Code 43 repair:
 
