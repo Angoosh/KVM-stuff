@@ -58,10 +58,13 @@ sudo virsh define <machine_name>.xml
 sudo EDITOR=nano virsh edit <machine_name>
 	
 first line add:
-xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'
+//////////////////////////xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'
 
 find <features>
 add under features group:
+    <hyperv>
+      <vendor_id state='on' value='1234567890ab'/>
+    </hyperv>
     <kvm>
       <hidden state='on'/>
     </kvm>
@@ -70,7 +73,7 @@ add under features group:
 after </devices> add:
   <qemu:commandline>
     <qemu:arg value='-cpu'/>
-    <qemu:arg value='host,hv_time,kvm=off,hv_vendor_id=null'/>
+    <qemu:arg value='host,kvm=off,hv_vendor_id=null'/>
   </qemu:commandline>
 
 
